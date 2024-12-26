@@ -31,14 +31,23 @@ def create_model():
 def encrypt_weights(weights, context):
     encrypted_weights = []
     for layer in weights:
-        encrypted_weights.append([ts.ckks_vector(context, vec) for vec in layer])
+        if isinstance(layer, np.ndarray):
+            # Tek boyutlu hale getir ve şifrele
+            layer_flattened = layer.flatten()
+            encrypted_layer = ts.ckks_vector(context, layer_flattened.tolist())
+            encrypted_weights.append(encrypted_layer)
+        else:
+            print("Skipping non-array layer.")  # Katmanları kontrol et
     return encrypted_weights
 
 def decrypt_weights(encrypted_weights, context):
     decrypted_weights = []
-    for layer in encrypted_weights:
-        decrypted_weights.append([vec.decrypt() for vec in layer])
+    for encrypted_layer in encrypted_weights:
+        # Şifre çöz ve orijinal boyuta döndür
+        decrypted_layer = np.array(encrypted_layer.decrypt())
+        decrypted_weights.append(decrypted_layer)
     return decrypted_weights
+
 
 def aggregate_encrypted_weights(client_encrypted_weights, context):
     aggregated_weights = []
