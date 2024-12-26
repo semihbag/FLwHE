@@ -43,16 +43,18 @@ def encrypt_weights(weights, context):
 def decrypt_weights(encrypted_weights, context):
     decrypted_weights = []
     for encrypted_layer in encrypted_weights:
-        # Şifre çöz ve orijinal boyuta döndür
-        decrypted_layer = np.array(encrypted_layer.decrypt())
-        decrypted_weights.append(decrypted_layer)
+        decrypted_layer = encrypted_layer.decrypt()  # Doğrudan decrypt et
+        decrypted_weights.append(np.array(decrypted_layer).reshape(-1, encrypted_layer.size()))
     return decrypted_weights
-
 
 def aggregate_encrypted_weights(client_encrypted_weights, context):
     aggregated_weights = []
     for encrypted_layer_tuple in zip(*client_encrypted_weights):
-        aggregated_layer = [sum(vecs) / len(vecs) for vecs in zip(*encrypted_layer_tuple)]
+        aggregated_layer = encrypted_layer_tuple[0].copy()
+        for vec in encrypted_layer_tuple[1:]:
+            aggregated_layer += vec
+        # Ortalama alma
+        aggregated_layer *= (1 / len(encrypted_layer_tuple))
         aggregated_weights.append(aggregated_layer)
     return aggregated_weights
 
