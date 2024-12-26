@@ -2,7 +2,7 @@ import tensorflow as tf
 from tensorflow.keras import Sequential
 from tensorflow.keras.layers import Dense, Flatten
 import numpy as np
-from tenseal import ts  # Homomorphic Encryption kütüphanesi
+import tenseal as ts  # Homomorphic Encryption kütüphanesi
 
 # MNIST datasetini yükleyelim
 (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
