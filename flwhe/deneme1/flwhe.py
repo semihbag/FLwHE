@@ -30,32 +30,30 @@ def create_model():
 # Homomorphic Encryption için yardımcı fonksiyonlar
 def encrypt_weights(weights, context):
     encrypted_weights = []
+    shapes = []  # Şekilleri kaydet
     for layer in weights:
         if isinstance(layer, np.ndarray):
-            # Tek boyutlu hale getir ve şifrele
+            shapes.append(layer.shape)  # Şekli kaydet
             layer_flattened = layer.flatten()
             encrypted_layer = ts.ckks_vector(context, layer_flattened.tolist())
             encrypted_weights.append(encrypted_layer)
-        else:
-            print("Skipping non-array layer.")  # Katmanları kontrol et
-    return encrypted_weights
+    return encrypted_weights, shapes
 
-def decrypt_weights(encrypted_weights, context):
+def decrypt_weights(encrypted_weights, shapes, context):
     decrypted_weights = []
-    for encrypted_layer in encrypted_weights:
-        decrypted_layer = encrypted_layer.decrypt()  # Doğrudan decrypt et
-        decrypted_weights.append(np.array(decrypted_layer).reshape(-1, encrypted_layer.size()))
+    for encrypted_layer, shape in zip(encrypted_weights, shapes):
+        decrypted_layer = np.array(encrypted_layer.decrypt())  # Şifre çöz
+        decrypted_weights.append(decrypted_layer.reshape(shape))  # Şekli geri yükle
     return decrypted_weights
 
 def aggregate_encrypted_weights(client_encrypted_weights, context):
     aggregated_weights = []
     for encrypted_layer_tuple in zip(*client_encrypted_weights):
-        aggregated_layer = encrypted_layer_tuple[0].copy()
+        aggregated_vector = encrypted_layer_tuple[0].copy()
         for vec in encrypted_layer_tuple[1:]:
-            aggregated_layer += vec
-        # Ortalama alma
-        aggregated_layer *= (1 / len(encrypted_layer_tuple))
-        aggregated_weights.append(aggregated_layer)
+            aggregated_vector += vec
+        aggregated_vector *= (1 / len(encrypted_layer_tuple))
+        aggregated_weights.append(aggregated_vector)
     return aggregated_weights
 
 # Federated Learning Fonksiyonları
@@ -66,7 +64,7 @@ def train_client_model(client_data, epochs=1):
     return model.get_weights()
 
 # Homomorphic Encryption için ayarlar
-context = ts.context(ts.SCHEME_TYPE.CKKS, poly_modulus_degree=8192, coeff_mod_bit_sizes=[60, 40, 40, 60])
+context = ts.context(ts.SCHEME_TYPE.CKKS, poly_modulus_degree=16384, coeff_mod_bit_sizes=[60, 40, 40, 60])
 context.global_scale = 2 ** 40
 context.generate_galois_keys()
 
@@ -77,24 +75,26 @@ num_rounds = 3
 for round_num in range(num_rounds):
     print(f"Round {round_num + 1} of Federated Learning with Homomorphic Encryption")
     client_encrypted_weights = []
+    client_shapes = []
 
     for client_data in client_datasets:
         # Client modelini eğit
-        client_weight = train_client_model(client_data)
+        client_weights = train_client_model(client_data)
 
         # Ağırlıkları şifrele
-        encrypted_weights = encrypt_weights(client_weight, context)
+        encrypted_weights, shapes = encrypt_weights(client_weights, context)
         client_encrypted_weights.append(encrypted_weights)
+        client_shapes = shapes  # Şekilleri kaydet (tüm client'lar için aynı)
 
     # Sunucuda şifreli ağırlıkları birleştir
     aggregated_encrypted_weights = aggregate_encrypted_weights(client_encrypted_weights, context)
 
     # Şifreli ağırlıkları çöz
-    aggregated_weights = decrypt_weights(aggregated_encrypted_weights, context)
+    aggregated_weights = decrypt_weights(aggregated_encrypted_weights, client_shapes, context)
 
     # Birleştirilmiş ağırlıkları sunucu modeline uygula
     server_model.set_weights(aggregated_weights)
 
 # Modeli test edelim
-loss, accuracy = server_model.evaluate(x_test, y_test)
+loss, accuracy = server_model.evaluate(x_test, y_test, verbose=0)
 print(f"Federated Learning with Homomorphic Encryption Accuracy: {accuracy * 100:.2f}%")
