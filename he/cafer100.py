@@ -4,6 +4,15 @@ from tensorflow.keras.layers import Dense, Flatten
 import numpy as np
 import tenseal as ts  # Homomorphic Encryption kütüphanesi
 
+import random
+
+# Rastgelelikleri sabitlemek
+seed = 42
+np.random.seed(seed)
+tf.random.set_seed(seed)
+random.seed(seed)
+
+
 # CIFAR-100 datasetini yükleyelim
 (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar100.load_data()
 x_train, x_test = x_train / 255.0, x_test / 255.0
@@ -60,7 +69,7 @@ def aggregate_encrypted_weights(client_encrypted_weights, context):
 def train_client_model(client_data, epochs=1):
     x, y = client_data
     model = create_model()
-    model.fit(x, y, epochs=epochs, verbose=0)
+    model.fit(x, y, epochs=epochs, verbose=0, shuffle=False)
     return model.get_weights()
 
 # Homomorphic Encryption için ayarlar
