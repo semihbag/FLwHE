@@ -4,8 +4,8 @@ from tensorflow.keras.layers import Dense, Flatten
 import numpy as np
 import tenseal as ts  # Homomorphic Encryption kütüphanesi
 
-# MNIST datasetini yükleyelim
-(x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
+# CIFAR-100 datasetini yükleyelim
+(x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar100.load_data()
 x_train, x_test = x_train / 255.0, x_test / 255.0
 
 # Client'ları simüle etmek için veriyi bölelim
@@ -19,10 +19,10 @@ for i in range(num_clients):
 
 # Her bir client için basit bir model tanımlayalım
 def create_model():
-    model = Sequential([a
-        Flatten(input_shape=(28, 28)),
+    model = Sequential([
+        Flatten(input_shape=(32, 32, 3)),
         Dense(128, activation='relu'),
-        Dense(10, activation='softmax')
+        Dense(100, activation='softmax')
     ])
     model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
     return model
@@ -89,11 +89,16 @@ for round_num in range(num_rounds):
     # Sunucuda şifreli ağırlıkları birleştir
     aggregated_encrypted_weights = aggregate_encrypted_weights(client_encrypted_weights, context)
 
-    # Şifreli ağırlıkları çöz
-    aggregated_weights = decrypt_weights(aggregated_encrypted_weights, client_shapes, context)
+    # Şifreli ağırlıkları çözmeden global model ağırlıklarını güncelle
+    aggregated_weights = [layer.decrypt() for layer in aggregated_encrypted_weights]
+
+    # Ağırlıkları yeniden şekillendir
+    final_weights = []
+    for layer, shape in zip(aggregated_weights, client_shapes):
+        final_weights.append(np.array(layer).reshape(shape))
 
     # Birleştirilmiş ağırlıkları sunucu modeline uygula
-    server_model.set_weights(aggregated_weights)
+    server_model.set_weights(final_weights)
 
 # Modeli test edelim
 loss, accuracy = server_model.evaluate(x_test, y_test, verbose=0)
