@@ -1,4 +1,4 @@
-tensorflow==2.13.0
-numpy==1.23.5
-tenseal==0.3.15
+numpy==1.26.0
+tensorflow==2.14.0
 flwr==1.14.0
+tenseal==0.3.15
