@@ -19,7 +19,7 @@ for i in range(num_clients):
 
 # Her bir client için basit bir model tanımlayalım
 def create_model():
-    model = Sequential([a
+    model = Sequential([
         Flatten(input_shape=(28, 28)),
         Dense(128, activation='relu'),
         Dense(10, activation='softmax')
