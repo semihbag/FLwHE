@@ -72,6 +72,7 @@ def main():
         client_fn=lambda cid: clients[int(cid)],
         num_clients=num_clients,
         config=fl.server.ServerConfig(num_rounds=3),
+        strategy=strategy,
     )
 
 if __name__ == "__main__":
