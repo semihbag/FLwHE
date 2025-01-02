@@ -6,16 +6,22 @@ from torchvision import datasets, transforms
 from torch.utils.data import DataLoader, Dataset, random_split
 
 # Modelin tanımlanması
-class SimpleModel(nn.Module):
+class ImprovedModel(nn.Module):
     def __init__(self):
-        super(SimpleModel, self).__init__()
-        self.fc1 = nn.Linear(28 * 28, 128)
-        self.fc2 = nn.Linear(128, 10)
+        super(ImprovedModel, self).__init__()
+        self.fc1 = nn.Linear(28 * 28, 256)  # İlk katman
+        self.fc2 = nn.Linear(256, 128)       # İkinci katman
+        self.fc3 = nn.Linear(128, 64)        # Üçüncü katman
+        self.fc4 = nn.Linear(64, 10)         # Çıkış katmanı
 
     def forward(self, x):
-        x = x.view(-1, 28 * 28)
-        x = F.relu(self.fc1(x))
-        x = self.fc2(x)
+        x = x.view(-1, 28 * 28)              # Girişleri düzleştir
+        x = F.relu(self.fc1(x))              # İlk katmanda ReLU aktivasyonu
+        x = F.dropout(x, p=0.5)              # Dropout ile aşırı öğrenmeyi önleme
+        x = F.relu(self.fc2(x))              # İkinci katmanda ReLU aktivasyonu
+        x = F.dropout(x, p=0.5)              # Dropout ile aşırı öğrenmeyi önleme
+        x = F.relu(self.fc3(x))              # Üçüncü katmanda ReLU aktivasyonu
+        x = self.fc4(x)                       # Çıkış katmanı
         return x
 
 # Federated client sınıfı
@@ -93,7 +99,7 @@ def main():
     test_loader = get_test_data_loader()
 
     # Model oluşturma
-    model = SimpleModel()
+    model = ImprovedModel()
     
     # İstemcileri oluşturma
     clients = [FederatedClient(model, client_data) for client_data in client_data_loaders]
