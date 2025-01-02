@@ -86,7 +86,7 @@ def main():
     # Dinamik değişkenler
     num_clients = 5  # İstemci sayısı
     epochs = 1       # Epoch sayısı
-    rounds = 10      # Round sayısı
+    rounds = 5      # Round sayısı
 
     # Veri yükleme
     client_data_loaders = get_data_loaders(num_clients)
