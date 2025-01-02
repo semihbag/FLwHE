@@ -3,12 +3,14 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 from torchvision import datasets, transforms
-from torch.utils.data import DataLoader, Dataset, random_split
+from torch.utils.data import DataLoader, Dataset, random_split, Subset
+import numpy as np
+from collections import defaultdict
 
 # Modelin tanımlanması
 class ImprovedModel(nn.Module):
-    def _init_(self):
-        super(ImprovedModel, self)._init_()
+    def __init__(self):
+        super(ImprovedModel, self).__init__()
         self.conv1 = nn.Conv2d(3, 32, kernel_size=3, padding=1)
         self.bn1 = nn.BatchNorm2d(32)
         self.conv2 = nn.Conv2d(32, 64, kernel_size=3, padding=1)
@@ -58,17 +60,31 @@ def get_test_data_loader():
     test_data = datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)
     return DataLoader(test_data, batch_size=32)
 
-# Otomatik veri yükleme ve dağıtma
-def get_data_loaders(num_clients):
+# Homojen veri yükleme ve dağıtma
+def get_homogeneous_data_loaders(num_clients, batch_size=32):
     transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))])
     train_data = datasets.CIFAR10(root='./data', train=True, download=True, transform=transform)
 
-    # Veriyi eşit şekilde ve homojen olarak her bir istemciye dağıtma
-    data_per_client = len(train_data) // num_clients
-    clients_data = random_split(train_data, [data_per_client] * num_clients)
-    
-    # DataLoader'lar oluşturma
-    return [DataLoader(client_data, batch_size=32) for client_data in clients_data]
+    # Veriyi sınıflara ayır
+    class_indices = defaultdict(list)
+    for idx, (_, label) in enumerate(train_data):
+        class_indices[label].append(idx)
+
+    # Her istemciye eşit miktarda veri dağıt
+    client_indices = [[] for _ in range(num_clients)]
+    for label, indices in class_indices.items():
+        np.random.shuffle(indices)  # Sınıf içindeki veriyi karıştır
+        split_indices = np.array_split(indices, num_clients)  # Her sınıfı eşit parçalara böl
+        for client_id, split in enumerate(split_indices):
+            client_indices[client_id].extend(split)
+
+    # Her istemci için DataLoader oluştur
+    client_dataloaders = []
+    for indices in client_indices:
+        client_subset = Subset(train_data, indices)
+        client_dataloaders.append(DataLoader(client_subset, batch_size=batch_size, shuffle=True))
+
+    return client_dataloaders
 
 # Modelin doğruluğunu hesaplama
 def evaluate_model(model, test_loader):
@@ -99,7 +115,7 @@ def main():
     rounds = 5      # Round sayısı
 
     # Veri yükleme
-    client_data_loaders = get_data_loaders(num_clients)
+    client_data_loaders = get_homogeneous_data_loaders(num_clients)
     test_loader = get_test_data_loader()
 
     # Model oluşturma
