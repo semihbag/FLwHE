@@ -6,15 +6,25 @@ from torchvision import datasets, transforms
 from torch.utils.data import DataLoader, Dataset, random_split
 
 # Modelin tanımlanması
-class SimpleModel(nn.Module):
-    def __init__(self):
-        super(SimpleModel, self).__init__()
-        self.fc1 = nn.Linear(28 * 28, 128)
-        self.fc2 = nn.Linear(128, 10)
+class ImprovedModel(nn.Module):
+    def _init_(self):
+        super(ImprovedModel, self)._init_()
+        self.conv1 = nn.Conv2d(3, 32, kernel_size=3, padding=1)
+        self.bn1 = nn.BatchNorm2d(32)
+        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, padding=1)
+        self.bn2 = nn.BatchNorm2d(64)
+        self.pool = nn.MaxPool2d(2, 2)
+        self.fc1 = nn.Linear(64 * 8 * 8, 256)  # 64 kanallı ve 8x8 boyutlu çıktı
+        self.fc2 = nn.Linear(256, 10)
+        self.relu = nn.ReLU()
+        self.dropout = nn.Dropout(0.5)
 
     def forward(self, x):
-        x = x.view(-1, 28 * 28)
-        x = F.relu(self.fc1(x))
+        x = self.relu(self.bn1(self.conv1(x)))
+        x = self.pool(self.relu(self.bn2(self.conv2(x))))
+        x = x.view(x.size(0), -1)  # Flatten
+        x = self.relu(self.fc1(x))
+        x = self.dropout(x)
         x = self.fc2(x)
         return x
 
@@ -45,7 +55,7 @@ class FederatedClient:
 # Test için veri yükleme
 def get_test_data_loader():
     transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))])
-    test_data = datasets.MNIST(root='./data', train=False, download=True, transform=transform)
+    test_data = datasets.CIFAR100(root='./data', train=False, download=True, transform=transform)
     return DataLoader(test_data, batch_size=32)
 
 # Otomatik veri yükleme ve dağıtma
@@ -93,7 +103,7 @@ def main():
     test_loader = get_test_data_loader()
 
     # Model oluşturma
-    model = SimpleModel()
+    model = ImprovedModel()
     
     # İstemcileri oluşturma
     clients = [FederatedClient(model, client_data) for client_data in client_data_loaders]
