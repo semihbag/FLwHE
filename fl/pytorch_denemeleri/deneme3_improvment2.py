@@ -55,13 +55,13 @@ class FederatedClient:
 # Test için veri yükleme
 def get_test_data_loader():
     transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))])
-    test_data = datasets.CIFAR100(root='./data', train=False, download=True, transform=transform)
+    test_data = datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)
     return DataLoader(test_data, batch_size=32)
 
 # Otomatik veri yükleme ve dağıtma
 def get_data_loaders(num_clients):
     transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))])
-    train_data = datasets.MNIST(root='./data', train=True, download=True, transform=transform)
+    train_data = datasets.CIFAR10(root='./data', train=True, download=True, transform=transform)
 
     # Veriyi eşit şekilde ve homojen olarak her bir istemciye dağıtma
     data_per_client = len(train_data) // num_clients
