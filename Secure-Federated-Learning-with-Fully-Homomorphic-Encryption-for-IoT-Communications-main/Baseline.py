@@ -522,6 +522,14 @@ def start_train_end_node_process_without_print(number_of_samples, model_dict):
 
     return model_dict
 
+def initialize_models(number_of_samples, input_size=784, hidden_size=128, num_classes=2):
+    model_dict = {}
+    for i in range(number_of_samples):
+        model = Net(input_size, hidden_size, num_classes)  # Net sınıfınızı kullanarak
+        model = model.float()
+        model_dict[f'model_{i}'] = model
+    return model_dict
+
 x_train, y_train, x_valid, y_valid,x_test, y_test = map(torch.tensor, (x_train, y_train, x_valid, y_valid, x_test, y_test))
 number_of_samples= 100
 number_of_clusters = 5
@@ -529,6 +537,11 @@ learning_rate = 0.01
 numEpoch =  30
 batch_size = 32
 momentum = 0.9
+
+input_size = 784  # Giriş boyutunuzu ayarlayın
+hidden_size = 128  # Gizli katman boyutunuzu ayarlayın
+num_classes = 2   # Sınıf sayınızı ayarlayın
+model_dict = initialize_models(number_of_samples, input_size, hidden_size, num_classes)
 
 train_amount=6000
 valid_amount=1000
