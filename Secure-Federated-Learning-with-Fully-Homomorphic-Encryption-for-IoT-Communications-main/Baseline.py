@@ -19,9 +19,13 @@ from sklearn.metrics import recall_score, precision_score, f1_score, confusion_m
 
 pd.options.display.float_format = "{:,.4f}".format
 
-dataset_name = 'your dataset'
+# Veri setini indirme ve yükleme
+dataset_url = "https://raw.githubusercontent.com/jbrownlee/Datasets/master/pima-indians-diabetes.data.csv"
+column_names = ['Pregnancies', 'Glucose', 'BloodPressure', 'SkinThickness', 'Insulin', 
+                'BMI', 'DiabetesPedigreeFunction', 'Age', 'Outcome']
 
-dataset_1 = pd.read_csv(dataset_name, header = None)
+# Veri setini yükleme
+dataset_1 = pd.read_csv(dataset_url, header=None, names=column_names)
 
 num_of_features = (dataset_1.shape[1])-1
 
