@@ -482,30 +482,41 @@ def prepare_test_data_dictionaries(x_test, y_test, number_of_samples):
 def start_train_end_node_process_without_print(number_of_samples, model_dict):
     global x_train_dict, y_train_dict, x_test_dict, y_test_dict
     
-    # Train verilerini hazırla
+    # Veri tipini float32'ye dönüştür
     if not hasattr(globals(), 'x_train_dict') or len(x_train_dict) == 0:
+        x_train = x_train.float()  # float32'ye dönüştür
         x_train_dict, y_train_dict = prepare_data_dictionaries(x_train, y_train, number_of_samples)
     
-    # Test verilerini hazırla
     if not hasattr(globals(), 'x_test_dict') or len(x_test_dict) == 0:
+        x_test = x_test.float()  # float32'ye dönüştür
         x_test_dict, y_test_dict = prepare_test_data_dictionaries(x_test, y_test, number_of_samples)
     
     for i in range(number_of_samples):
-        # Train ve test key'lerini kontrol et
+        # Model parametrelerini float32'ye dönüştür
+        model = model_dict[f'model_{i}']
+        model = model.float()
+        
         train_key = f'x_train_{i}'
         test_key = f'x_test_{i}'
         
         if train_key not in x_train_dict or test_key not in x_test_dict:
             print(f"Node {i} için veri bulunamadı!")
             continue
-            
-        train_ds = TensorDataset(x_train_dict[train_key], y_train_dict[f'y_train_{i}'])
-        test_ds = TensorDataset(x_test_dict[test_key], y_test_dict[f'y_test_{i}'])
         
-        # Batch size kontrolü
+        # TensorDataset oluştururken veri tiplerini kontrol et
+        x_train_data = x_train_dict[train_key].float()
+        y_train_data = y_train_dict[f'y_train_{i}']
+        
+        train_ds = TensorDataset(x_train_data, y_train_data)
+        test_ds = TensorDataset(x_test_dict[test_key].float(), y_test_dict[f'y_test_{i}'])
+        
         batch_size = min(32, len(train_ds))
         train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True)
         test_dl = DataLoader(test_ds, batch_size=batch_size * 2)
+        
+        optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=momentum)
+        criterion = nn.CrossEntropyLoss()
+        
     
         model=model_dict[name_of_models[i]]
         criterion=criterion_dict[name_of_criterions[i]]
