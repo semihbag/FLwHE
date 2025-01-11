@@ -619,6 +619,7 @@ Flag=False
 
 model_dict = initialize_models(number_of_samples)
 
+name_of_models = [f"model{i}" for i in range(number_of_samples)]
 
 for i in range(numEpoch):
     start_time = time.time()
