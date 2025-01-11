@@ -17,6 +17,13 @@ from torch.utils.data import TensorDataset
 from torch.utils.data import DataLoader
 from sklearn.metrics import recall_score, precision_score, f1_score, confusion_matrix 
 
+def initialize_models(number_of_samples, input_size=784, hidden_size=128, num_classes=2):
+    model_dict = {}
+    for i in range(number_of_samples):
+        model = Net(input_size, hidden_size, num_classes)  # Net sınıfınızı kullanarak
+        model = model.float()
+        model_dict[f'model_{i}'] = model
+    return model_dict
 
 class Net(nn.Module):
     def __init__(self, input_size=784, hidden_size=128, num_classes=2):
@@ -497,6 +504,9 @@ def prepare_test_data_dictionaries(x_test, y_test, number_of_samples):
 def start_train_end_node_process_without_print(number_of_samples, model_dict):
     global x_train, y_train, x_test, y_test
     global x_train_dict, y_train_dict, x_test_dict, y_test_dict
+   
+    if not model_dict:
+        model_dict = initialize_models(number_of_samples)
 
     # Veri tiplerini dönüştür
     x_train = x_train.clone().detach().float()
@@ -537,13 +547,7 @@ def start_train_end_node_process_without_print(number_of_samples, model_dict):
 
     return model_dict
 
-def initialize_models(number_of_samples, input_size=784, hidden_size=128, num_classes=2):
-    model_dict = {}
-    for i in range(number_of_samples):
-        model = Net(input_size, hidden_size, num_classes)  # Net sınıfınızı kullanarak
-        model = model.float()
-        model_dict[f'model_{i}'] = model
-    return model_dict
+
 
 x_train, y_train, x_valid, y_valid,x_test, y_test = map(torch.tensor, (x_train, y_train, x_valid, y_valid, x_test, y_test))
 number_of_samples= 100
@@ -556,7 +560,6 @@ momentum = 0.9
 input_size = 784  # Giriş boyutunuzu ayarlayın
 hidden_size = 128  # Gizli katman boyutunuzu ayarlayın
 num_classes = 2   # Sınıf sayınızı ayarlayın
-model_dict = initialize_models(number_of_samples, input_size, hidden_size, num_classes)
 
 train_amount=6000
 valid_amount=1000
