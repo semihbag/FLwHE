@@ -195,31 +195,36 @@ def validation(model, test_loader, criterion):
     FP_all = 0
     FN_all = 0
     TP_all = 0
-
+    
     with torch.no_grad():
-        for data, target in test_loader:
-            output = model(data)
-            test_loss += criterion(output, target.long()).item()
+            for data, target in test_loader:
+                output = model(data)
+                test_loss += criterion(output, target.long()).item()
 
-            prediction = output.argmax(dim=1, keepdim=True)
-            correct += prediction.eq(target.view_as(prediction)).sum().item()
-            
+                prediction = output.argmax(dim=1, keepdim=True)
+                correct += prediction.eq(target.view_as(prediction)).sum().item()
+                
+                # Convert tensors to numpy arrays
+                target_numpy = target.cpu().numpy()
+                prediction_numpy = prediction.cpu().numpy().reshape(-1)  # Flatten predictions
 
-            recall = recall_score(target.long(), prediction)
-            recall_all += recall
+                recall = recall_score(target_numpy, prediction_numpy)
+                recall_all += recall
 
-            precision = precision_score(target.long(), prediction)
-            precision_all += precision
-            
-            f1 = f1_score(target.long(), prediction)
-            f1_score_all += f1
+                precision = precision_score(target_numpy, prediction_numpy)
+                precision_all += precision
+                
+                f1 = f1_score(target_numpy, prediction_numpy)
+                f1_score_all += f1
 
-            TN, FP, FN, TP = confusion_matrix(target.long(), prediction, labels=[0,1]).ravel()
-            
-            TN_all += TN
-            FP_all += FP
-            FN_all += FN
-            TP_all += TP
+                cm = confusion_matrix(target_numpy, prediction_numpy, labels=[0,1])
+                TN, FP, FN, TP = cm.ravel()
+                
+                TN_all += TN
+                FP_all += FP
+                FN_all += FN
+                TP_all += TP
+             
              
     
     test_loss /= len(test_loader)
