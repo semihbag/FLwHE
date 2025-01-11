@@ -462,28 +462,49 @@ def prepare_data_dictionaries(x_train, y_train, number_of_samples):
     
     return x_train_dict, y_train_dict
 
+def prepare_test_data_dictionaries(x_test, y_test, number_of_samples):
+    total_samples = len(x_test)
+    samples_per_node = total_samples // number_of_samples
+    
+    x_test_dict = {}
+    y_test_dict = {}
+    
+    for i in range(number_of_samples):
+        start_idx = i * samples_per_node
+        end_idx = (i + 1) * samples_per_node if i < number_of_samples - 1 else total_samples
+        
+        x_test_dict[f'x_test_{i}'] = x_test[start_idx:end_idx]
+        y_test_dict[f'y_test_{i}'] = y_test[start_idx:end_idx]
+    
+    return x_test_dict, y_test_dict
+
 
 def start_train_end_node_process_without_print(number_of_samples, model_dict):
-    # Dictionary'leri hazırla
-    global x_train_dict, y_train_dict
+    global x_train_dict, y_train_dict, x_test_dict, y_test_dict
+    
+    # Train verilerini hazırla
     if not hasattr(globals(), 'x_train_dict') or len(x_train_dict) == 0:
         x_train_dict, y_train_dict = prepare_data_dictionaries(x_train, y_train, number_of_samples)
     
+    # Test verilerini hazırla
+    if not hasattr(globals(), 'x_test_dict') or len(x_test_dict) == 0:
+        x_test_dict, y_test_dict = prepare_test_data_dictionaries(x_test, y_test, number_of_samples)
+    
     for i in range(number_of_samples):
-        # Dictionary key'lerini kontrol et
+        # Train ve test key'lerini kontrol et
         train_key = f'x_train_{i}'
-        if train_key not in x_train_dict or len(x_train_dict[train_key]) == 0:
+        test_key = f'x_test_{i}'
+        
+        if train_key not in x_train_dict or test_key not in x_test_dict:
             print(f"Node {i} için veri bulunamadı!")
             continue
             
-        train_ds = TensorDataset(x_train_dict[f'x_train_{i}'], y_train_dict[f'y_train_{i}'])
+        train_ds = TensorDataset(x_train_dict[train_key], y_train_dict[f'y_train_{i}'])
+        test_ds = TensorDataset(x_test_dict[test_key], y_test_dict[f'y_test_{i}'])
         
         # Batch size kontrolü
         batch_size = min(32, len(train_ds))
         train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True)
-        
-        # Test verisi için benzer işlemler
-        test_ds = TensorDataset(x_test_dict[f'x_test_{i}'], y_test_dict[f'y_test_{i}'])
         test_dl = DataLoader(test_ds, batch_size=batch_size * 2)
     
         model=model_dict[name_of_models[i]]
