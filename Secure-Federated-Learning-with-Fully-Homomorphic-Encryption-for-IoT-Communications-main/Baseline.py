@@ -17,6 +17,21 @@ from torch.utils.data import TensorDataset
 from torch.utils.data import DataLoader
 from sklearn.metrics import recall_score, precision_score, f1_score, confusion_matrix 
 
+
+class Net(nn.Module):
+    def __init__(self, input_size=784, hidden_size=128, num_classes=2):
+        super(Net, self).__init__()
+        self.fc1 = nn.Linear(input_size, hidden_size)
+        self.fc2 = nn.Linear(hidden_size, hidden_size)
+        self.fc3 = nn.Linear(hidden_size, num_classes)
+        
+    def forward(self, x):
+        x = x.view(-1, 784)  # Flatten
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = self.fc3(x)
+        return x
+    
 pd.options.display.float_format = "{:,.4f}".format
 
 # Veri setini indirme ve yükleme
