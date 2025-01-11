@@ -195,7 +195,7 @@ def validation(model, test_loader, criterion):
     FP_all = 0
     FN_all = 0
     TP_all = 0
-    
+
     with torch.no_grad():
             for data, target in test_loader:
                 output = model(data)
@@ -444,14 +444,47 @@ def send_Enc_model_to_nodes_and_update_Enc_model_dict(enc_main_model, encrypted_
     
     return encrypted_model_dict
 
+def prepare_data_dictionaries(x_train, y_train, number_of_samples):
+    # Toplam veri sayısı
+    total_samples = len(x_train)
+    # Her node için veri sayısı
+    samples_per_node = total_samples // number_of_samples
+    
+    x_train_dict = {}
+    y_train_dict = {}
+    
+    for i in range(number_of_samples):
+        start_idx = i * samples_per_node
+        end_idx = (i + 1) * samples_per_node if i < number_of_samples - 1 else total_samples
+        
+        x_train_dict[f'x_train_{i}'] = x_train[start_idx:end_idx]
+        y_train_dict[f'y_train_{i}'] = y_train[start_idx:end_idx]
+    
+    return x_train_dict, y_train_dict
+
+
 def start_train_end_node_process_without_print(number_of_samples, model_dict):
-    for i in range (number_of_samples): 
-
-        train_ds = TensorDataset(x_train_dict[name_of_x_train_sets[i]], y_train_dict[name_of_y_train_sets[i]])
+    # Dictionary'leri hazırla
+    global x_train_dict, y_train_dict
+    if not hasattr(globals(), 'x_train_dict') or len(x_train_dict) == 0:
+        x_train_dict, y_train_dict = prepare_data_dictionaries(x_train, y_train, number_of_samples)
+    
+    for i in range(number_of_samples):
+        # Dictionary key'lerini kontrol et
+        train_key = f'x_train_{i}'
+        if train_key not in x_train_dict or len(x_train_dict[train_key]) == 0:
+            print(f"Node {i} için veri bulunamadı!")
+            continue
+            
+        train_ds = TensorDataset(x_train_dict[f'x_train_{i}'], y_train_dict[f'y_train_{i}'])
+        
+        # Batch size kontrolü
+        batch_size = min(32, len(train_ds))
         train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True)
-
-        test_ds = TensorDataset(x_test_dict[name_of_x_test_sets[i]], y_test_dict[name_of_y_test_sets[i]])
-        test_dl = DataLoader(test_ds, batch_size= batch_size * 2)
+        
+        # Test verisi için benzer işlemler
+        test_ds = TensorDataset(x_test_dict[f'x_test_{i}'], y_test_dict[f'y_test_{i}'])
+        test_dl = DataLoader(test_ds, batch_size=batch_size * 2)
     
         model=model_dict[name_of_models[i]]
         criterion=criterion_dict[name_of_criterions[i]]
