@@ -45,8 +45,10 @@ def federated_learning_with_he(num_clients=5, epochs=5):
         end_idx = (i + 1) * len(x_train) // num_clients
         client_data.append((x_train[start_idx:end_idx], y_train[start_idx:end_idx]))
 
+    # Global model is now encrypted
     global_model = create_cnn_model()
     global_weights = global_model.get_weights()
+    encrypted_global_weights = [ts.ckks_vector(context, np.array(w, dtype=np.float64).flatten()) for w in global_weights]
 
     metrics = []
     
@@ -55,15 +57,16 @@ def federated_learning_with_he(num_clients=5, epochs=5):
         client_times = []
 
         for client_x, client_y in client_data:
+            # Client decrypts the global weights for local training
+            decrypted_weights = [np.array(w.decrypt()).reshape(global_weights[i].shape) for i, w in enumerate(encrypted_global_weights)]
             client_model = create_cnn_model()
-            client_model.set_weights(global_weights)
-            client_model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+            client_model.set_weights(decrypted_weights)
 
             start_time = time.time()
             client_model.fit(client_x, client_y, epochs=1, verbose=0)
             end_time = time.time()
 
-            # Encrypt client weights
+            # Encrypt updated client weights
             client_weights = client_model.get_weights()
             encrypted_weights = [ts.ckks_vector(context, np.array(w, dtype=np.float64).flatten()) for w in client_weights]
             encrypted_client_weights.append(encrypted_weights)
@@ -71,16 +74,17 @@ def federated_learning_with_he(num_clients=5, epochs=5):
 
         # Aggregate encrypted weights using FedAvg
         aggregated_weights = []
-        for i in range(len(global_weights)):
+        for i in range(len(encrypted_global_weights)):
             encrypted_sum = encrypted_client_weights[0][i]
             for j in range(1, num_clients):
                 encrypted_sum += encrypted_client_weights[j][i]
-            encrypted_sum = encrypted_sum.mul(1 / num_clients)  # Scale by dividing each element
-            decrypted_weights = encrypted_sum.decrypt()  # Decrypt the aggregated weights
-            aggregated_weights.append(np.array(decrypted_weights).reshape(global_weights[i].shape))
+            aggregated_weights.append(encrypted_sum.mul(1 / num_clients))
 
-        global_weights = aggregated_weights
-        global_model.set_weights(global_weights)
+        encrypted_global_weights = aggregated_weights
+
+        # Metrics are evaluated on the client side after decrypting the model
+        decrypted_global_weights = [np.array(w.decrypt()).reshape(global_weights[i].shape) for i, w in enumerate(encrypted_global_weights)]
+        global_model.set_weights(decrypted_global_weights)
 
         loss, accuracy = global_model.evaluate(x_test, y_test, verbose=0)
         avg_time = np.mean(client_times)
