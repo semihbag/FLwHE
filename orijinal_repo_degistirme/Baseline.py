@@ -210,19 +210,21 @@ def validation(model, test_loader, criterion):
             test_loss += criterion(output, target.long()).item()
 
             prediction = output.argmax(dim=1, keepdim=True)
-            correct += prediction.eq(target.view_as(prediction)).sum().item()
-            
 
-            recall = recall_score(target.long(), prediction)
+            # Torch tensörlerini NumPy'ye çevirerek sklearn metriklerini hesapla
+            target_numpy = target.cpu().numpy()
+            prediction_numpy = prediction.cpu().numpy()
+
+            recall = recall_score(target_numpy, prediction_numpy, average="weighted")
             recall_all += recall
 
-            precision = precision_score(target.long(), prediction)
+            precision = precision_score(target_numpy, prediction_numpy, average="weighted")
             precision_all += precision
             
-            f1 = f1_score(target.long(), prediction)
+            f1 = f1_score(target_numpy, prediction_numpy, average="weighted")
             f1_score_all += f1
 
-            TN, FP, FN, TP = confusion_matrix(target.long(), prediction, labels=[0,1]).ravel()
+            TN, FP, FN, TP = confusion_matrix(target_numpy, prediction_numpy, labels=[0,1]).ravel()
             
             TN_all += TN
             FP_all += FP
@@ -236,10 +238,7 @@ def validation(model, test_loader, criterion):
     precision_all /= len(test_loader)
     f1_score_all /= len(test_loader)
 
-
-
     return test_loss, correct, recall_all, precision_all, f1_score_all, TN_all, FP_all, FN_all, TP_all, len(test_loader)
-
 
 
 def create_model_optimizer_criterion_dict(number_of_samples):
