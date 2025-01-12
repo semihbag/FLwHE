@@ -1,4 +1,4 @@
 # File: requirements.txt
-tensorflow==2.10.0
+tensorflow==2.12.0
 numpy==1.23.5
-PySEAL==4.0.0
+tenseal==0.3.10

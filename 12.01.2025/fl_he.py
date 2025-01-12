@@ -5,7 +5,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras import datasets, layers, models
 import time
-from PySEAL import EncryptionParameters, SEALContext, KeyGenerator, Encryptor, Decryptor, Evaluator, CKKSEncoder
+import tenseal as ts
 
 # Data Preparation
 def load_data():
@@ -28,26 +28,18 @@ def create_cnn_model():
 
 # Homomorphic Encryption Setup
 def setup_encryption():
-    parms = EncryptionParameters()  # Use CKKS scheme
-    parms.set_poly_modulus_degree(8192)
-    parms.set_coeff_modulus(SEALContext.default_coeff_modulus_128(8192))
-    context = SEALContext(parms)
-    keygen = KeyGenerator(context)
-    public_key = keygen.create_public_key()
-    secret_key = keygen.create_secret_key()
-    encryptor = Encryptor(context, public_key)
-    decryptor = Decryptor(context, secret_key)
-    evaluator = Evaluator(context)
-    encoder = CKKSEncoder(context)
-    return encryptor, decryptor, evaluator, encoder
+    context = ts.context(ts.SCHEME_TYPE.CKKS, poly_modulus_degree=8192, coeff_mod_bit_sizes=[60, 40, 40, 60])
+    context.global_scale = 2**40
+    context.generate_galois_keys()
+    context.generate_relin_keys()
+    return context
 
 # Federated Learning with HE Simulation
 def federated_learning_with_he(num_clients=5, epochs=5):
     (x_train, y_train), (x_test, y_test) = load_data()
     client_data = []
 
-    encryptor, decryptor, evaluator, encoder = setup_encryption()
-    scale = 2**40
+    context = setup_encryption()
 
     for i in range(num_clients):
         start_idx = i * len(x_train) // num_clients
@@ -74,7 +66,7 @@ def federated_learning_with_he(num_clients=5, epochs=5):
 
             # Encrypt client weights
             client_weights = client_model.get_weights()
-            encrypted_weights = [encryptor.encrypt(encoder.encode(np.array(w, dtype=np.float64), scale)) for w in client_weights]
+            encrypted_weights = [ts.ckks_vector(context, np.array(w, dtype=np.float64).flatten()) for w in client_weights]
             encrypted_client_weights.append(encrypted_weights)
             client_times.append(end_time - start_time)
 
@@ -83,12 +75,10 @@ def federated_learning_with_he(num_clients=5, epochs=5):
         for i in range(len(global_weights)):
             encrypted_sum = encrypted_client_weights[0][i]
             for j in range(1, num_clients):
-                evaluator.add_inplace(encrypted_sum, encrypted_client_weights[j][i])
-            evaluator.multiply_plain_inplace(encrypted_sum, encoder.encode(1.0 / num_clients, scale))
-            decrypted_weight = encoder.decode(decryptor.decrypt(encrypted_sum))
-            aggregated_weights.append(decrypted_weight)
+                encrypted_sum += encrypted_client_weights[j][i]
+            aggregated_weights.append((encrypted_sum / num_clients).decrypt())
 
-        global_weights = aggregated_weights
+        global_weights = [np.array(w).reshape(global_weights[i].shape) for i, w in enumerate(aggregated_weights)]
         global_model.set_weights(global_weights)
 
         loss, accuracy = global_model.evaluate(x_test, y_test, verbose=0)

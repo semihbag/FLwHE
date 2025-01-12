@@ -1,5 +1,3 @@
-# Federated Learning Implementation with FL and HE Layers
-
 ## FL-Only Implementation
 
 # File: fl_only.py
