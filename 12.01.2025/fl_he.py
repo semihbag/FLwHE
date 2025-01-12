@@ -1,5 +1,3 @@
-## FL+HE Implementation
-
 # File: fl_he.py
 import numpy as np
 import tensorflow as tf
@@ -76,9 +74,11 @@ def federated_learning_with_he(num_clients=5, epochs=5):
             encrypted_sum = encrypted_client_weights[0][i]
             for j in range(1, num_clients):
                 encrypted_sum += encrypted_client_weights[j][i]
-            aggregated_weights.append((encrypted_sum / num_clients).decrypt())
+            encrypted_sum = encrypted_sum.mul(1 / num_clients)  # Scale by dividing each element
+            decrypted_weights = encrypted_sum.decrypt()  # Decrypt the aggregated weights
+            aggregated_weights.append(np.array(decrypted_weights).reshape(global_weights[i].shape))
 
-        global_weights = [np.array(w).reshape(global_weights[i].shape) for i, w in enumerate(aggregated_weights)]
+        global_weights = aggregated_weights
         global_model.set_weights(global_weights)
 
         loss, accuracy = global_model.evaluate(x_test, y_test, verbose=0)
