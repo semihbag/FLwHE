@@ -17,9 +17,12 @@ from torch.utils.data import TensorDataset
 from torch.utils.data import DataLoader
 from sklearn.metrics import recall_score, precision_score, f1_score, confusion_matrix 
 
+arguments = sys.argv
+
+
 pd.options.display.float_format = "{:,.4f}".format
 
-dataset_name = 'your dataset'
+dataset_name = arguments[1]
 
 dataset_1 = pd.read_csv(dataset_name, header = None)
 
