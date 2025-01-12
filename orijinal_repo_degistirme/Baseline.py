@@ -24,7 +24,7 @@ pd.options.display.float_format = "{:,.4f}".format
 
 dataset_name = arguments[1]
 
-dataset_1 = pd.read_csv(dataset_name, header = None)
+dataset_1 = pd.read_csv(dataset_name, header = 0)
 
 num_of_features = (dataset_1.shape[1])-1
 
@@ -52,7 +52,7 @@ if x_test.dtype == "object":
     x_test = x_test.astype(float)
 if y_test.dtype == "object":
     y_test = y_test.astype(int)
-    
+
 batch_size=32
 
 split_idx = math.floor(len(x_trainn) * 0.8)
