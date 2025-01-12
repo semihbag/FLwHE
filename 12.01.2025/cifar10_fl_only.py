@@ -42,7 +42,8 @@ def federated_learning_simulation(num_clients=5, epochs=5):
     global_weights = global_model.get_weights()
 
     metrics = []
-    
+    start_time = time.time()  # Start time for total elapsed time
+
     for epoch in range(epochs):
         client_weights = []
         client_times = []
@@ -51,12 +52,12 @@ def federated_learning_simulation(num_clients=5, epochs=5):
             client_model = create_cnn_model()
             client_model.set_weights(global_weights)
 
-            start_time = time.time()
+            start_time_client = time.time()
             client_model.fit(client_x, client_y, epochs=1, verbose=0)
-            end_time = time.time()
+            end_time_client = time.time()
 
             client_weights.append(client_model.get_weights())
-            client_times.append(end_time - start_time)
+            client_times.append(end_time_client - start_time_client)
 
         # FedAvg Algorithm
         global_weights = [np.mean([client_weights[k][i] for k in range(num_clients)], axis=0) for i in range(len(global_weights))]
@@ -66,6 +67,13 @@ def federated_learning_simulation(num_clients=5, epochs=5):
         avg_time = np.mean(client_times)
         metrics.append((epoch, loss, accuracy, avg_time))
         print(f"Epoch {epoch}: Loss: {loss:.4f}, Accuracy: {accuracy:.4f}, Avg Client Time: {avg_time:.4f}")
+
+    end_time = time.time()  # End time for total elapsed time
+    elapsed_time = end_time - start_time
+    hours, rem = divmod(elapsed_time, 3600)
+    minutes, seconds = divmod(rem, 60)
+    milliseconds = (elapsed_time - int(elapsed_time)) * 1000
+    print(f"Total Elapsed Time: {int(hours)}h {int(minutes)}m {int(seconds)}s {int(milliseconds):.0f}ms")
 
     return metrics
 

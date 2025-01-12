@@ -55,7 +55,8 @@ def federated_learning_with_he(num_clients=5, epochs=5):
     encrypted_global_weights = [ts.ckks_vector(context, np.array(w, dtype=np.float64).flatten()) for w in global_weights]
 
     metrics = []
-    
+    start_time = time.time()  # Start time for total elapsed time
+
     for epoch in range(epochs):
         encrypted_client_weights = []
         client_times = []
@@ -66,15 +67,15 @@ def federated_learning_with_he(num_clients=5, epochs=5):
             client_model = create_cnn_model()
             client_model.set_weights(decrypted_weights)
 
-            start_time = time.time()
+            start_time_client = time.time()
             client_model.fit(client_x, client_y, epochs=1, verbose=0)
-            end_time = time.time()
+            end_time_client = time.time()
 
             # Encrypt updated client weights
             client_weights = client_model.get_weights()
             encrypted_weights = [ts.ckks_vector(context, np.array(w, dtype=np.float64).flatten()) for w in client_weights]
             encrypted_client_weights.append(encrypted_weights)
-            client_times.append(end_time - start_time)
+            client_times.append(end_time_client - start_time_client)
 
         # Aggregate encrypted weights using FedAvg
         aggregated_weights = []
@@ -94,6 +95,13 @@ def federated_learning_with_he(num_clients=5, epochs=5):
         avg_time = np.mean(client_times)
         metrics.append((epoch, loss, accuracy, avg_time))
         print(f"Epoch {epoch}: Loss: {loss:.4f}, Accuracy: {accuracy:.4f}, Avg Client Time: {avg_time:.4f}")
+
+    end_time = time.time()  # End time for total elapsed time
+    elapsed_time = end_time - start_time
+    hours, rem = divmod(elapsed_time, 3600)
+    minutes, seconds = divmod(rem, 60)
+    milliseconds = (elapsed_time - int(elapsed_time)) * 1000
+    print(f"Total Elapsed Time: {int(hours)}h {int(minutes)}m {int(seconds)}s {int(milliseconds):.0f}ms")
 
     return metrics
 
