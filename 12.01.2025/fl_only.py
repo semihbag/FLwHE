@@ -1,5 +1,3 @@
-## FL-Only Implementation
-
 # File: fl_only.py
 import numpy as np
 import tensorflow as tf
@@ -23,6 +21,7 @@ def create_cnn_model():
         layers.Dense(128, activation='relu'),
         layers.Dense(10, activation='softmax')
     ])
+    model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
     return model
 
 # Federated Learning Simulation
@@ -47,7 +46,6 @@ def federated_learning_simulation(num_clients=5, epochs=5):
         for client_x, client_y in client_data:
             client_model = create_cnn_model()
             client_model.set_weights(global_weights)
-            client_model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
             start_time = time.time()
             client_model.fit(client_x, client_y, epochs=1, verbose=0)
