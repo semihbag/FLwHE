@@ -44,6 +44,15 @@ y_test =test_DS.iloc[:,-1]
 x_test = np.array(x_test)
 y_test = np.array(y_test)
 
+if x_trainn.dtype == "object":
+    x_trainn = x_trainn.astype(float)
+if y_trainn.dtype == "object":
+    y_trainn = y_trainn.astype(int)
+if x_test.dtype == "object":
+    x_test = x_test.astype(float)
+if y_test.dtype == "object":
+    y_test = y_test.astype(int)
+    
 batch_size=32
 
 split_idx = math.floor(len(x_trainn) * 0.8)
